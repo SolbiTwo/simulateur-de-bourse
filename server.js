@@ -500,7 +500,10 @@ app.get("/", (req, res) => {
 
 app.get("/api/health", async (req, res) => {
   if (!SUPABASE_CONFIGURED && !LOCAL_AUTH) {
-    return res.status(500).json({ message: "Supabase non configuré. Vérifie les variables d'environnement dans Vercel." });
+    return res.status(200).json({
+      ok: false,
+      message: "Supabase non configuré. Vérifie les variables d'environnement dans Vercel."
+    });
   }
   res.json({ ok: true });
 });
