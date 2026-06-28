@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleButton.style.padding = '0';
     toggleButton.style.fontWeight = '800';
     toggleButton.style.cursor = 'pointer';
+    toggleButton.style.lineHeight = '1';
+    toggleButton.style.display = 'flex';
+    toggleButton.style.alignItems = 'center';
+    toggleButton.style.justifyContent = 'center';
 
     wrapper.appendChild(toggleButton);
 
