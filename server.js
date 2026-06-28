@@ -14,8 +14,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key_change_in_production";
 const PORT = Number(process.env.PORT || 3000);
-const LOCAL_AUTH = process.env.LOCAL_AUTH === 'true';
 const SUPABASE_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+const LOCAL_AUTH = process.env.LOCAL_AUTH === 'true' || !SUPABASE_CONFIGURED;
 
 if (!SUPABASE_CONFIGURED) {
   console.error("SUPABASE_URL et SUPABASE_ANON_KEY sont manquants ou mal configurés dans Vercel.");
@@ -137,7 +137,7 @@ async function obtenirCours(symbole) {
 // PORTFOLIO
 // =====================
 async function getPortefeuille(userId) {
-  if (LOCAL_AUTH) {
+  if (LOCAL_AUTH || !supabase) {
     const db = readLocalDb();
     const user = Object.values(db.users).find(u => u.id === userId || u.username === userId);
     if (!user) return { argent: 0, positions: [], transactions: [] };
@@ -358,7 +358,7 @@ async function vendreAction(userId, symbole, quantite) {
 // AUTHENTIFICATION
 // =====================
 async function registerUser(username, password) {
-  if (LOCAL_AUTH) {
+  if (LOCAL_AUTH || !supabase) {
     // Local registration
     ensureLocalDb();
     const db = readLocalDb();
@@ -416,7 +416,7 @@ async function registerUser(username, password) {
 }
 
 async function loginUser(username, password) {
-  if (LOCAL_AUTH) {
+  if (LOCAL_AUTH || !supabase) {
     ensureLocalDb();
     const db = readLocalDb();
     const user = Object.values(db.users).find(u => u.username === username);
