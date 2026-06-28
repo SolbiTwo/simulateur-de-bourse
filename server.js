@@ -358,26 +358,28 @@ async function vendreAction(userId, symbole, quantite) {
 // AUTHENTIFICATION
 // =====================
 async function registerUser(username, password) {
+  const trimmedUsername = String(username || "").trim();
+
   if (LOCAL_AUTH || !supabase) {
     // Local registration
     ensureLocalDb();
     const db = readLocalDb();
-    const existing = Object.values(db.users).find(u => u.username === username);
+    const existing = Object.values(db.users).find(u => String(u.username || "") === trimmedUsername);
     if (existing) throw new Error('Cet utilisateur existe déjà');
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-    const newUser = { id, username, password: hashedPassword, argent: 10000, positions: [], transactions: [], created_at: new Date().toISOString() };
+    const newUser = { id, username: trimmedUsername, password: hashedPassword, argent: 10000, positions: [], transactions: [], created_at: new Date().toISOString() };
     db.users[id] = newUser;
     writeLocalDb(db);
-    const token = jwt.sign({ userId: id, username }, JWT_SECRET, { expiresIn: '7d' });
-    return { token, username };
+    const token = jwt.sign({ userId: id, username: trimmedUsername }, JWT_SECRET, { expiresIn: '7d' });
+    return { token, username: trimmedUsername };
   }
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const { data: existingUser, error: existingUserError } = await supabase
     .from("users")
     .select("id")
-    .eq("username", username)
+    .eq("username", trimmedUsername)
     .maybeSingle();
 
   if (existingUserError) {
@@ -390,7 +392,7 @@ async function registerUser(username, password) {
 
   const { data: newUser, error: insertError } = await supabase
     .from("users")
-    .insert([{ username, password: hashedPassword }])
+    .insert([{ username: trimmedUsername, password: hashedPassword }])
     .select("id, username")
     .single();
 
@@ -416,10 +418,12 @@ async function registerUser(username, password) {
 }
 
 async function loginUser(username, password) {
+  const trimmedUsername = String(username || "").trim();
+
   if (LOCAL_AUTH || !supabase) {
     ensureLocalDb();
     const db = readLocalDb();
-    const user = Object.values(db.users).find(u => u.username === username);
+    const user = Object.values(db.users).find(u => String(u.username || "") === trimmedUsername);
     if (!user) throw new Error("Nom d'utilisateur ou mot de passe incorrect");
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) throw new Error("Nom d'utilisateur ou mot de passe incorrect");
@@ -429,7 +433,7 @@ async function loginUser(username, password) {
   const { data: user, error: userError } = await supabase
     .from("users")
     .select("id, username, password")
-    .eq("username", username)
+    .eq("username", trimmedUsername)
     .single();
 
   if (userError) {
