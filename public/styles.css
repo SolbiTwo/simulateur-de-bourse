@@ -177,6 +177,10 @@ input[type="password"] {
   text-transform: none !important;
 }
 
+input[type="password"]::placeholder {
+  text-transform: none !important;
+}
+
 input[type="text"],
 input[type="search"],
 input[type="email"],

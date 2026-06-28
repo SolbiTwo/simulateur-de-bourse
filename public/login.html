@@ -132,15 +132,15 @@
         <form id="authForm" class="auth-form">
           <label>
             Nom d'utilisateur
-            <input id="authUsername" type="text" autocomplete="username" required>
+            <input id="authUsername" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
           </label>
           <label>
             Mot de passe
-            <input id="authPassword" type="password" autocomplete="password" required>
+            <input id="authPassword" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required>
           </label>
           <label id="passwordConfirmLabel" style="display: none;">
             Confirmer le mot de passe
-            <input id="authPasswordConfirm" type="password" autocomplete="password">
+            <input id="authPasswordConfirm" type="password" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false">
           </label>
           <button id="authButton" type="submit">Connexion</button>
         </form>
