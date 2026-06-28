@@ -14,8 +14,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key_change_in_production";
 const PORT = Number(process.env.PORT || 3000);
+const IS_VERCEL = Boolean(process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION);
 const SUPABASE_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
-const LOCAL_AUTH = process.env.LOCAL_AUTH === 'true' || !SUPABASE_CONFIGURED;
+const LOCAL_AUTH = process.env.LOCAL_AUTH === 'true' && !IS_VERCEL;
 
 if (!SUPABASE_CONFIGURED) {
   console.error("SUPABASE_URL et SUPABASE_ANON_KEY sont manquants ou mal configurés dans Vercel.");
@@ -23,6 +24,7 @@ if (!SUPABASE_CONFIGURED) {
 
 console.log(`LOCAL_AUTH=${LOCAL_AUTH} - ${LOCAL_AUTH ? 'Using local auth fallback' : 'Using Supabase auth'}`);
 console.log(`SUPABASE_CONFIGURED=${SUPABASE_CONFIGURED}`);
+console.log(`IS_VERCEL=${IS_VERCEL}`);
 
 const app = express();
 const supabase = SUPABASE_CONFIGURED ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
@@ -137,7 +139,7 @@ async function obtenirCours(symbole) {
 // PORTFOLIO
 // =====================
 async function getPortefeuille(userId) {
-  if (LOCAL_AUTH || !supabase) {
+  if (LOCAL_AUTH) {
     const db = readLocalDb();
     const user = Object.values(db.users).find(u => u.id === userId || u.username === userId);
     if (!user) return { argent: 0, positions: [], transactions: [] };
@@ -147,6 +149,11 @@ async function getPortefeuille(userId) {
       transactions: (user.transactions || []).slice(-8).reverse().map(t => ({ type: t.type, symbole: t.symbole, quantite: t.quantite, prixUnitaire: t.prix_unitaire, total: t.total, date: t.date }))
     };
   }
+
+  if (!SUPABASE_CONFIGURED || !supabase) {
+    throw new Error("Supabase non configuré. Vérifiez les variables d'environnement dans Vercel.");
+  }
+
   const { data: portefeuille, error: pError } = await supabase
     .from("user_portfolios")
     .select("argent")
@@ -360,7 +367,7 @@ async function vendreAction(userId, symbole, quantite) {
 async function registerUser(username, password) {
   const trimmedUsername = String(username || "").trim();
 
-  if (LOCAL_AUTH || !supabase) {
+  if (LOCAL_AUTH) {
     // Local registration
     ensureLocalDb();
     const db = readLocalDb();
@@ -374,6 +381,11 @@ async function registerUser(username, password) {
     const token = jwt.sign({ userId: id, username: trimmedUsername }, JWT_SECRET, { expiresIn: '7d' });
     return { token, username: trimmedUsername };
   }
+
+  if (!SUPABASE_CONFIGURED || !supabase) {
+    throw new Error("Supabase non configuré. Vérifiez les variables d'environnement dans Vercel.");
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const { data: existingUser, error: existingUserError } = await supabase
@@ -420,7 +432,7 @@ async function registerUser(username, password) {
 async function loginUser(username, password) {
   const trimmedUsername = String(username || "").trim();
 
-  if (LOCAL_AUTH || !supabase) {
+  if (LOCAL_AUTH) {
     ensureLocalDb();
     const db = readLocalDb();
     const user = Object.values(db.users).find(u => String(u.username || "") === trimmedUsername);
@@ -430,6 +442,11 @@ async function loginUser(username, password) {
     const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     return { token, username: user.username };
   }
+
+  if (!SUPABASE_CONFIGURED || !supabase) {
+    throw new Error("Supabase non configuré. Vérifiez les variables d'environnement dans Vercel.");
+  }
+
   const { data: user, error: userError } = await supabase
     .from("users")
     .select("id, username, password")
