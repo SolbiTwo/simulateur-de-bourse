@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur de bourse - Connexion</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+      .auth-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .auth-card {
+        width: 100%;
+        max-width: 400px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: var(--shadow);
+        padding: 40px;
+      }
+
+      .auth-card h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 2rem;
+      }
+
+      .auth-card .eyebrow {
+        text-align: center;
+      }
+
+      .auth-form {
+        display: grid;
+        gap: 16px;
+      }
+
+      .auth-form label {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .auth-form input {
+        width: 100%;
+        height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+        padding: 0 12px;
+        font-weight: 800;
+        outline: none;
+      }
+
+      .auth-form input:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 4px rgba(39, 110, 241, 0.12);
+      }
+
+      .auth-form button {
+        min-height: 44px;
+        border-radius: 8px;
+        background: var(--blue);
+        color: #fff;
+        padding: 0 16px;
+        font-weight: 900;
+        border: 0;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+
+      .auth-form button:hover {
+        opacity: 0.9;
+      }
+
+      .auth-message {
+        margin: 16px 0 0;
+        min-height: 24px;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .auth-message.error {
+        color: var(--red);
+        font-weight: 800;
+      }
+
+      .auth-message.success {
+        color: var(--green);
+        font-weight: 800;
+      }
+
+      .auth-toggle {
+        text-align: center;
+        margin-top: 20px;
+        color: var(--muted);
+      }
+
+      .auth-toggle button {
+        background: none;
+        border: none;
+        color: var(--blue);
+        font-weight: 900;
+        cursor: pointer;
+        text-decoration: underline;
+        padding: 0;
+        margin-left: 4px;
+      }
+
+      .auth-toggle button:hover {
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Portefeuille virtuel</p>
+        <h1>Simulateur de bourse</h1>
+      </div>
+    </header>
+
+    <div class="auth-container">
+      <div class="auth-card">
+        <p class="eyebrow" style="text-align: center;">Authentification</p>
+        <h1 id="authTitle">Connexion</h1>
+
+        <form id="authForm" class="auth-form">
+          <label>
+            Nom d'utilisateur
+            <input id="authUsername" type="text" autocomplete="username" required>
+          </label>
+          <label>
+            Mot de passe
+            <input id="authPassword" type="password" autocomplete="password" required>
+          </label>
+          <label id="passwordConfirmLabel" style="display: none;">
+            Confirmer le mot de passe
+            <input id="authPasswordConfirm" type="password" autocomplete="password">
+          </label>
+          <button id="authButton" type="submit">Connexion</button>
+        </form>
+
+        <p id="authMessage" class="auth-message"></p>
+
+        <p class="auth-toggle">
+          <span id="toggleText">Pas encore de compte ?</span>
+          <button id="toggleButton" type="button">Inscription</button>
+        </p>
+      </div>
+    </div>
+
+    <script src="/auth.js"></script>
+  </body>
+</html>

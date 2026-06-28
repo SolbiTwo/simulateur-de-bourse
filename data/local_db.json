@@ -1,0 +1,22 @@
+{
+  "users": {
+    "1782578511695_fv20wq": {
+      "id": "1782578511695_fv20wq",
+      "username": "TESTUSER",
+      "password": "$2b$10$1viyxGSxsTcw4P6lgHDnK.K9ojbmTBav3hNrsKhH11C4/blx6N3sG",
+      "argent": 10000,
+      "positions": [],
+      "transactions": [],
+      "created_at": "2026-06-27T16:41:51.695Z"
+    },
+    "1782580498335_ktc97t": {
+      "id": "1782580498335_ktc97t",
+      "username": "SOLBITWO",
+      "password": "$2b$10$Y0nZeJtXmkxO8cBRbFRaXeOFszv7IRQNnEpip4XY/RWN3DS5afG06",
+      "argent": 10000,
+      "positions": [],
+      "transactions": [],
+      "created_at": "2026-06-27T17:14:58.335Z"
+    }
+  }
+}

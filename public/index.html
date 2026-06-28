@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur de bourse</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Portefeuille virtuel</p>
+        <h1>Simulateur de bourse</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="loginButton" class="ghost-button" type="button">Connexion</button>
+        <button id="logoutButton" class="ghost-button" type="button" style="display: none;">Déconnexion</button>
+      </div>
+      <div class="market-status">
+        <span class="status-dot"></span>
+        Donnees Alpha Vantage
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="summary-panel">
+        <div class="balance-card">
+          <span class="label">Argent disponible</span>
+          <strong id="balance">Chargement...</strong>
+        </div>
+
+        <div class="search-panel">
+          <label for="quoteSymbol">Cours d'une action</label>
+          <div class="inline-form">
+            <select id="quoteMarket" aria-label="Place boursiere">
+              <option value="US">New York</option>
+              <option value="PARIS">Paris</option>
+              <option value="TOKYO">Tokyo</option>
+              <option value="LONDRES">Londres</option>
+              <option value="FRANCFORT">Francfort</option>
+              <option value="TORONTO">Toronto</option>
+            </select>
+            <input id="quoteSymbol" type="text" value="AAPL" maxlength="12" autocomplete="off">
+            <button id="quoteButton" type="button">Rechercher</button>
+          </div>
+          <div id="quoteResult" class="quote-result muted">Exemples : AAPL a New York, AIR a Paris, 7203 a Tokyo.</div>
+        </div>
+      </section>
+
+      <section class="trade-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Ordre rapide</p>
+            <h2>Acheter ou vendre</h2>
+          </div>
+          <div class="segmented" role="tablist" aria-label="Type d'ordre">
+            <button class="segment active" type="button" data-action="acheter">Achat</button>
+            <button class="segment" type="button" data-action="vendre">Vente</button>
+          </div>
+        </div>
+
+        <form id="tradeForm" class="trade-form">
+          <label>
+            Place
+            <select id="tradeMarket">
+              <option value="US">New York</option>
+              <option value="PARIS">Paris</option>
+              <option value="TOKYO">Tokyo</option>
+              <option value="LONDRES">Londres</option>
+              <option value="FRANCFORT">Francfort</option>
+              <option value="TORONTO">Toronto</option>
+            </select>
+          </label>
+          <label>
+            Symbole
+            <input id="tradeSymbol" type="text" value="AAPL" maxlength="12" autocomplete="off" required>
+          </label>
+          <label>
+            Quantite
+            <input id="tradeQuantity" type="number" value="1" min="1" step="1" required>
+          </label>
+          <button id="tradeButton" type="submit">Acheter</button>
+        </form>
+
+        <p id="tradeMessage" class="message muted">Ton ordre apparaitra ici apres validation.</p>
+      </section>
+
+      <section class="positions-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Positions</p>
+            <h2>Actions possedees</h2>
+          </div>
+          <button id="refreshButton" class="ghost-button" type="button">Actualiser</button>
+        </div>
+
+        <div id="positions" class="positions-list"></div>
+      </section>
+
+      <section class="history-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Historique</p>
+            <h2>Dernieres operations</h2>
+          </div>
+        </div>
+        <div id="transactions" class="history-list"></div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
