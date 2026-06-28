@@ -15,16 +15,17 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key_change_in_production";
 const PORT = Number(process.env.PORT || 3000);
 const LOCAL_AUTH = process.env.LOCAL_AUTH === 'true';
+const SUPABASE_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error("SUPABASE_URL et SUPABASE_ANON_KEY sont manquants dans le fichier .env");
-  process.exit(1);
+if (!SUPABASE_CONFIGURED) {
+  console.error("SUPABASE_URL et SUPABASE_ANON_KEY sont manquants ou mal configurés dans Vercel.");
 }
 
 console.log(`LOCAL_AUTH=${LOCAL_AUTH} - ${LOCAL_AUTH ? 'Using local auth fallback' : 'Using Supabase auth'}`);
+console.log(`SUPABASE_CONFIGURED=${SUPABASE_CONFIGURED}`);
 
 const app = express();
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = SUPABASE_CONFIGURED ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 const fs = require('fs');
 const LOCAL_DB_PATH = path.join(__dirname, 'data', 'local_db.json');
 
@@ -493,7 +494,14 @@ app.post("/api/login", async (req, res, next) => {
 // =====================
 // ROUTES API
 // =====================
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.get("/api/health", async (req, res) => {
+  if (!SUPABASE_CONFIGURED && !LOCAL_AUTH) {
+    return res.status(500).json({ message: "Supabase non configuré. Vérifie les variables d'environnement dans Vercel." });
+  }
   res.json({ ok: true });
 });
 
