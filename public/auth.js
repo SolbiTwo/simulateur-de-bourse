@@ -39,7 +39,7 @@ function setMode(mode) {
 async function submitAuth(event) {
   event.preventDefault();
 
-  const username = authUsername.value.trim().toUpperCase();
+  const username = authUsername.value.trim();
   const password = authPassword.value;
   const passwordConfirm = authPasswordConfirm.value;
 
@@ -90,9 +90,6 @@ async function submitAuth(event) {
   }
 }
 
-authUsername.addEventListener("input", () => {
-  authUsername.value = authUsername.value.toUpperCase();
-});
 
 toggleButton.addEventListener("click", () => {
   setMode(isRegister ? "login" : "register");
