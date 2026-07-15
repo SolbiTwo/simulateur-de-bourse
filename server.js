@@ -6,6 +6,9 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { createClient } = require("@supabase/supabase-js");
 const yahooFinance = require("yahoo-finance2").default;
+const alpha = require("alphavantage")({ key: process.env.ALPHA_KEY });
+
+const ALPHA_KEY = process.env.ALPHA_KEY?.trim();
 
 // =====================
 // CONFIG
@@ -107,12 +110,40 @@ function nettoyerQuantite(quantite) {
 }
 
 // =====================
-// YAHOO FINANCE
+// COURS DES ACTIONS
 // =====================
 async function obtenirCours(symbole) {
+  if (ALPHA_KEY) {
+    try {
+      const data = await alpha.data.quote(symbole);
+      const quote = data?.["Global Quote"] || {};
+      const prix = Number(quote["05. price"]);
+
+      if (prix && prix > 0) {
+        return {
+          symbole,
+          prix,
+          haut: Number(quote["03. high"] || 0),
+          bas: Number(quote["04. low"] || 0),
+          ouverture: Number(quote["02. open"] || 0),
+          precedent: Number(quote["08. previous close"] || 0),
+          devise: quote["08. previous close"] ? "USD" : "USD",
+          nom: quote["01. symbol"] || symbole,
+          fournisseur: "Alpha Vantage"
+        };
+      }
+
+      throw new Error(`Prix invalide Alpha Vantage pour ${symbole}`);
+    } catch (err) {
+      console.error("Alpha Vantage error:", err.message);
+      console.warn("Alpha Vantage failed, bascule vers Yahoo Finance.");
+    }
+  } else {
+    console.warn("ALPHA_KEY non défini, utilisation de Yahoo Finance.");
+  }
+
   try {
     const quote = await yahooFinance.quote(symbole);
-
     const prix = Number(quote?.regularMarketPrice);
 
     if (!prix || prix <= 0) {
@@ -127,11 +158,12 @@ async function obtenirCours(symbole) {
       ouverture: Number(quote?.regularMarketOpen || 0),
       precedent: Number(quote?.regularMarketPreviousClose || 0),
       devise: quote?.currency || "USD",
-      nom: quote?.shortName || quote?.longName || symbole
+      nom: quote?.shortName || quote?.longName || symbole,
+      fournisseur: "Yahoo Finance"
     };
   } catch (err) {
     console.error("Yahoo error:", err.message);
-    throw new Error("Erreur récupération cours Yahoo Finance");
+    throw new Error("Erreur récupération cours Alpha Vantage et Yahoo Finance");
   }
 }
 

@@ -2,7 +2,9 @@ require("dotenv").config();
 
 const readline = require("readline");
 const alpha = require("alphavantage")({ key: process.env.ALPHA_KEY });
+const yahooFinance = require("yahoo-finance2").default;
 const { createClient } = require("@supabase/supabase-js");
+const ALPHA_KEY = process.env.ALPHA_KEY?.trim();
 
 // =====================
 // SUPABASE INIT
@@ -24,18 +26,40 @@ function question(text) {
   return new Promise((resolve) => rl.question(text, resolve));
 }
 
-// =====================
-// YAHOO FINANCE
-// =====================
-
 
 async function obtenirPrix(symbole) {
-  const data = await alpha.data.quote(symbole);
-  const prix = Number(data["Global Quote"]["05. price"]);
+  if (ALPHA_KEY) {
+    try {
+      const data = await alpha.data.quote(symbole);
+      const quote = data?.["Global Quote"] || {};
+      const prix = Number(quote["05. price"]);
 
-  if (!prix) throw new Error("Prix invalide");
+      if (prix && prix > 0) {
+        return prix;
+      }
 
-  return prix;
+      throw new Error(`Prix invalide Alpha Vantage pour ${symbole}`);
+    } catch (err) {
+      console.error("Alpha Vantage error:", err.message);
+      console.warn("Alpha Vantage failed, bascule vers Yahoo Finance.");
+    }
+  } else {
+    console.warn("ALPHA_KEY non défini, utilisation de Yahoo Finance.");
+  }
+
+  try {
+    const quote = await yahooFinance.quote(symbole);
+    const prix = Number(quote?.regularMarketPrice);
+
+    if (!prix || prix <= 0) {
+      throw new Error(`Prix invalide pour ${symbole}`);
+    }
+
+    return prix;
+  } catch (err) {
+    console.error("Yahoo error:", err.message);
+    throw new Error("Erreur récupération prix Alpha Vantage et Yahoo Finance");
+  }
 }
 
 // =====================
