@@ -213,17 +213,31 @@ async function getPortefeuille(userId) {
 
   if (transError) throw transError;
 
-  const { data: user, error: userError } = await supabase
-    .from("users")
-    .select("victory_points")
-    .eq("id", userId)
-    .maybeSingle();
+  let victoryPoints = 0;
 
-  if (userError) throw userError;
+  try {
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("victory_points")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (userError) {
+      if (String(userError.message).includes("victory_points") || String(userError.code) === "PGRST116") {
+        victoryPoints = 0;
+      } else {
+        throw userError;
+      }
+    } else {
+      victoryPoints = Number(user?.victory_points || 0);
+    }
+  } catch (err) {
+    victoryPoints = 0;
+  }
 
   return {
     argent: Number(portefeuille?.argent ?? 0),
-    victoryPoints: Number(user?.victory_points || 0),
+    victoryPoints,
     positions: (positions || []).map(p => ({
       symbole: p.symbole,
       quantite: Number(p.quantite)

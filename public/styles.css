@@ -320,11 +320,8 @@ input[type="password"]::placeholder {
   text-transform: none !important;
 }
 
-input[type="text"],
-input[type="search"],
-input[type="email"],
-input[type="tel"],
-input[type="url"] {
+#quoteSymbol,
+#tradeSymbol {
   text-transform: uppercase;
 }
 
