@@ -147,12 +147,19 @@ async function searchQuote() {
   try {
     const cours = await api(`/api/cours/${encodeURIComponent(symbole)}?marche=${encodeURIComponent(marche)}`);
     quoteSymbol.value = cours.symbole;
-    setMessage(
-      quoteResult,
-      `${cours.symbole} vaut ${formatPrice(cours.prix, cours.devise)}. Haut: ${formatPrice(cours.haut, cours.devise)}. Bas: ${formatPrice(cours.bas, cours.devise)}.`,
-      "success"
-    );
+    const marketLabel = quoteMarket.options[quoteMarket.selectedIndex].textContent;
+
+    quoteResult.className = "quote-result";
+    quoteResult.innerHTML = `
+      <div class="quote-title">${cours.symbole} • ${marketLabel}</div>
+      <div class="quote-price">Prix actuel : ${formatPrice(cours.prix, cours.devise)}</div>
+      <div class="quote-range">
+        <span>Haut : ${formatPrice(cours.haut, cours.devise)}</span>
+        <span>Bas : ${formatPrice(cours.bas, cours.devise)}</span>
+      </div>
+    `;
   } catch (error) {
+    quoteResult.className = "quote-result muted";
     setMessage(quoteResult, error.message, "error");
   } finally {
     quoteButton.disabled = false;

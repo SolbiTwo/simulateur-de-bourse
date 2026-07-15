@@ -137,10 +137,57 @@ label {
 }
 
 .balance-card strong {
-  display: block;
+  display: inline-block;
   margin-top: 10px;
   font-size: clamp(2rem, 5vw, 4rem);
   line-height: 1;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.balance-value {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.currency-label {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.quote-result {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-top: 14px;
+  border: 1px solid rgba(22, 138, 91, 0.16);
+  border-radius: 12px;
+  background: rgba(22, 138, 91, 0.06);
+}
+
+.quote-result .quote-title {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.quote-result .quote-price {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--green);
+}
+
+.quote-result .quote-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.quote-result .quote-range span {
+  white-space: nowrap;
 }
 
 .inline-form,
