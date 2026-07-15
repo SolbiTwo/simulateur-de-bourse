@@ -26,7 +26,37 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
+  victory_points INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_friends (
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  friend_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, friend_id)
+);
+
+CREATE TABLE IF NOT EXISTS tournaments (
+  id BIGSERIAL PRIMARY KEY,
+  creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  budget NUMERIC(12, 2) NOT NULL CHECK (budget > 0),
+  duration_days INTEGER NOT NULL CHECK (duration_days > 0),
+  status TEXT NOT NULL CHECK (status IN ('OPEN', 'FINISHED')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  end_at TIMESTAMPTZ NOT NULL,
+  winner_id UUID REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS tournament_participants (
+  id BIGSERIAL PRIMARY KEY,
+  tournament_id BIGINT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  initial_budget NUMERIC(12, 2) NOT NULL CHECK (initial_budget >= 0),
+  current_budget NUMERIC(12, 2) NOT NULL CHECK (current_budget >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(tournament_id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS user_portfolios (

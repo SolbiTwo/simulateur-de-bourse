@@ -14,6 +14,17 @@ const tradeMessage = document.querySelector("#tradeMessage");
 const refreshButton = document.querySelector("#refreshButton");
 const loginButton = document.querySelector("#loginButton");
 const logoutButton = document.querySelector("#logoutButton");
+const victoryPointsEl = document.querySelector("#victoryPoints");
+const friendForm = document.querySelector("#friendForm");
+const friendUsername = document.querySelector("#friendUsername");
+const friendMessage = document.querySelector("#friendMessage");
+const friendsList = document.querySelector("#friendsList");
+const tournamentForm = document.querySelector("#tournamentForm");
+const tournamentName = document.querySelector("#tournamentName");
+const tournamentDuration = document.querySelector("#tournamentDuration");
+const tournamentBudget = document.querySelector("#tournamentBudget");
+const tournamentMessage = document.querySelector("#tournamentMessage");
+const tournamentsList = document.querySelector("#tournamentsList");
 const segments = document.querySelectorAll(".segment");
 
 let currentAction = "acheter";
@@ -125,11 +136,164 @@ function renderTransactions(items) {
     .join("");
 }
 
+async function renderFriends(items) {
+  if (!items || !items.length) {
+    friendsList.innerHTML = '<div class="empty">Aucun ami enregistré.</div>';
+    return;
+  }
+
+  friendsList.innerHTML = items
+    .map((item) => `
+      <div class="mini-item">
+        <div>
+          <strong>${item.username}</strong>
+          <div class="muted">Points : ${item.victoryPoints}</div>
+        </div>
+      </div>
+    `)
+    .join("");
+}
+
+async function renderTournaments(items) {
+  if (!items || !items.length) {
+    tournamentsList.innerHTML = '<div class="empty">Aucun tournoi disponible.</div>';
+    return;
+  }
+
+  tournamentsList.innerHTML = items
+    .map((item) => `
+      <div class="tournament-item">
+        <div>
+          <strong>${item.name}</strong>
+          <div class="tournament-meta">
+            <span>${item.creator === item.creator ? item.creator : item.creator}</span>
+            <span>Budget : ${formatMoney(item.budget)}</span>
+            <span>${item.durationDays} jour(s)</span>
+            <span>Status : ${item.status}</span>
+            ${item.winner ? `<span>Vainqueur : ${item.winner}</span>` : ""}
+          </div>
+        </div>
+        <div class="tournament-actions">
+          ${item.status === "OPEN" && !item.joined ? `<button type="button" data-action="join" data-id="${item.id}">Rejoindre</button>` : ""}
+          ${item.canFinish ? `<button type="button" data-action="finish" data-id="${item.id}">Terminer</button>` : ""}
+        </div>
+      </div>
+    `)
+    .join("");
+}
+
 async function loadPortfolio() {
   const portefeuille = await api("/api/portefeuille");
   balance.textContent = formatMoney(portefeuille.argent);
+  victoryPointsEl.textContent = portefeuille.victoryPoints || 0;
   renderPositions(portefeuille.positions);
   renderTransactions(portefeuille.transactions);
+  await loadFriends();
+  await loadTournaments();
+}
+
+async function loadFriends() {
+  try {
+    const friends = await api("/api/friends");
+    renderFriends(friends);
+  } catch (error) {
+    setMessage(friendMessage, error.message, "error");
+  }
+}
+
+async function loadTournaments() {
+  try {
+    const tournaments = await api("/api/tournaments");
+    renderTournaments(tournaments);
+  } catch (error) {
+    setMessage(tournamentMessage, error.message, "error");
+  }
+}
+
+async function addFriendHandler(event) {
+  event.preventDefault();
+
+  const username = friendUsername.value.trim();
+  if (!username) {
+    setMessage(friendMessage, "Entre un nom d'utilisateur.", "error");
+    return;
+  }
+
+  friendForm.querySelector("button").disabled = true;
+  setMessage(friendMessage, "Ajout en cours...", "muted");
+
+  try {
+    const result = await api("/api/friends", {
+      method: "POST",
+      body: JSON.stringify({ username })
+    });
+
+    friendUsername.value = "";
+    setMessage(friendMessage, result.message, "success");
+    await loadFriends();
+  } catch (error) {
+    setMessage(friendMessage, error.message, "error");
+  } finally {
+    friendForm.querySelector("button").disabled = false;
+  }
+}
+
+async function createTournamentHandler(event) {
+  event.preventDefault();
+
+  const name = tournamentName.value.trim();
+  const durationDays = Number(tournamentDuration.value);
+  const budget = Number(tournamentBudget.value);
+
+  if (!name || !durationDays || !budget) {
+    setMessage(tournamentMessage, "Nom, durée et budget requis.", "error");
+    return;
+  }
+
+  tournamentForm.querySelector("button").disabled = true;
+  setMessage(tournamentMessage, "Création en cours...", "muted");
+
+  try {
+    const result = await api("/api/tournaments", {
+      method: "POST",
+      body: JSON.stringify({ name, durationDays, budget })
+    });
+
+    tournamentName.value = "";
+    setMessage(tournamentMessage, `Tournoi créé (#${result.tournamentId}).`, "success");
+    await loadTournaments();
+  } catch (error) {
+    setMessage(tournamentMessage, error.message, "error");
+  } finally {
+    tournamentForm.querySelector("button").disabled = false;
+  }
+}
+
+async function tournamentActionHandler(event) {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+
+  const action = button.dataset.action;
+  const id = button.dataset.id;
+  if (!id) return;
+
+  button.disabled = true;
+
+  try {
+    if (action === "join") {
+      const result = await api(`/api/tournaments/${id}/join`, { method: "POST" });
+      setMessage(tournamentMessage, result.message, "success");
+    } else if (action === "finish") {
+      const result = await api(`/api/tournaments/${id}/finish`, { method: "POST" });
+      setMessage(tournamentMessage, `Tournoi terminé. Vainqueur : ${result.winnerId}.`, "success");
+    }
+    await loadTournaments();
+    await loadPortfolio();
+  } catch (error) {
+    setMessage(tournamentMessage, error.message, "error");
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function searchQuote() {
@@ -233,6 +397,9 @@ quoteSymbol.addEventListener("keydown", (event) => {
   }
 });
 tradeForm.addEventListener("submit", submitTrade);
+friendForm.addEventListener("submit", addFriendHandler);
+tournamentForm.addEventListener("submit", createTournamentHandler);
+tournamentsList.addEventListener("click", tournamentActionHandler);
 refreshButton.addEventListener("click", loadPortfolio);
 
 updateAuthButtons();

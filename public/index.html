@@ -30,6 +30,10 @@
             <strong id="balance">Chargement...</strong>
             <span class="currency-label">USD</span>
           </div>
+          <div class="points-badge">
+            <span>Points de victoire</span>
+            <strong id="victoryPoints">0</strong>
+          </div>
         </div>
 
         <div class="search-panel">
@@ -108,6 +112,56 @@
           </div>
         </div>
         <div id="transactions" class="history-list"></div>
+      </section>
+
+      <section class="social-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Communauté</p>
+            <h2>Amis</h2>
+          </div>
+        </div>
+
+        <form id="friendForm" class="small-form">
+          <label>
+            Ajouter un ami
+            <input id="friendUsername" type="text" placeholder="Nom d'utilisateur" maxlength="30" autocomplete="off">
+          </label>
+          <button type="submit">Ajouter</button>
+        </form>
+
+        <p id="friendMessage" class="message muted">Invite un ami pour jouer ensemble.</p>
+        <div id="friendsList" class="mini-list"></div>
+      </section>
+
+      <section class="tournament-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Tournois</p>
+            <h2>Créer ou rejoindre</h2>
+          </div>
+        </div>
+
+        <form id="tournamentForm" class="small-form">
+          <label>
+            Nom du tournoi
+            <input id="tournamentName" type="text" placeholder="Nom du tournoi" maxlength="50" autocomplete="off">
+          </label>
+          <div class="small-grid">
+            <label>
+              Durée (jours)
+              <input id="tournamentDuration" type="number" min="1" max="30" value="3">
+            </label>
+            <label>
+              Budget
+              <input id="tournamentBudget" type="number" min="100" step="100" value="1000">
+            </label>
+          </div>
+          <button type="submit">Créer</button>
+        </form>
+
+        <p id="tournamentMessage" class="message muted">Crée un tournoi pour défier tes amis.</p>
+        <div id="tournamentsList" class="mini-list"></div>
       </section>
     </main>
 

@@ -105,7 +105,9 @@ h2 {
 .summary-panel,
 .trade-panel,
 .positions-panel,
-.history-panel {
+.history-panel,
+.social-panel,
+.tournament-panel {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -152,10 +154,100 @@ label {
   flex-wrap: wrap;
 }
 
+.points-badge {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(22, 138, 91, 0.08);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.points-badge strong {
+  font-size: 1.2rem;
+  color: var(--green);
+}
+
 .currency-label {
   font-size: 1rem;
   font-weight: 800;
   color: var(--muted);
+}
+
+.small-form {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.small-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.small-form input,
+.small-form button {
+  width: 100%;
+}
+
+.small-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mini-list {
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.mini-item,
+.tournament-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--panel-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.mini-item div,
+.tournament-item div {
+  min-width: 0;
+}
+
+.mini-item strong,
+.tournament-item strong {
+  font-size: 0.95rem;
+}
+
+.tournament-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.tournament-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tournament-actions button,
+.mini-item button {
+  min-width: 88px;
+}
+
+.social-panel,
+.tournament-panel {
+  grid-column: 1 / -1;
 }
 
 .quote-result {

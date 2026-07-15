@@ -174,9 +174,10 @@ async function getPortefeuille(userId) {
   if (LOCAL_AUTH) {
     const db = readLocalDb();
     const user = Object.values(db.users).find(u => u.id === userId || u.username === userId);
-    if (!user) return { argent: 0, positions: [], transactions: [] };
+    if (!user) return { argent: 0, victoryPoints: 0, positions: [], transactions: [] };
     return {
       argent: Number(user.argent ?? 0),
+      victoryPoints: Number(user.victoryPoints ?? 0),
       positions: (user.positions || []).map(p => ({ symbole: p.symbole, quantite: Number(p.quantite) })),
       transactions: (user.transactions || []).slice(-8).reverse().map(t => ({ type: t.type, symbole: t.symbole, quantite: t.quantite, prixUnitaire: t.prix_unitaire, total: t.total, date: t.date }))
     };
@@ -212,8 +213,17 @@ async function getPortefeuille(userId) {
 
   if (transError) throw transError;
 
+  const { data: user, error: userError } = await supabase
+    .from("users")
+    .select("victory_points")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (userError) throw userError;
+
   return {
     argent: Number(portefeuille?.argent ?? 0),
+    victoryPoints: Number(user?.victory_points || 0),
     positions: (positions || []).map(p => ({
       symbole: p.symbole,
       quantite: Number(p.quantite)
@@ -227,6 +237,236 @@ async function getPortefeuille(userId) {
       date: t.date_transaction
     }))
   };
+}
+
+async function getFriends(userId) {
+  if (!SUPABASE_CONFIGURED || !supabase) {
+    throw new Error("Supabase non configuré. Vérifiez les variables d'environnement dans Vercel.");
+  }
+
+  const { data: friendRows, error: friendError } = await supabase
+    .from("user_friends")
+    .select("friend_id")
+    .eq("user_id", userId);
+
+  if (friendError) throw friendError;
+
+  const friendIds = (friendRows || []).map((row) => row.friend_id);
+  if (!friendIds.length) return [];
+
+  const { data: friends, error: friendsError } = await supabase
+    .from("users")
+    .select("id, username, victory_points")
+    .in("id", friendIds);
+
+  if (friendsError) throw friendsError;
+
+  return (friends || []).map((friend) => ({
+    id: friend.id,
+    username: friend.username,
+    victoryPoints: Number(friend.victory_points || 0)
+  }));
+}
+
+async function addFriend(userId, friendUsername) {
+  if (!friendUsername) {
+    throw new Error("Nom d'ami requis.");
+  }
+
+  const targetName = String(friendUsername).trim();
+  if (!targetName) {
+    throw new Error("Nom d'ami invalide.");
+  }
+
+  const { data: friendUser, error: friendUserError } = await supabase
+    .from("users")
+    .select("id, username")
+    .eq("username", targetName)
+    .maybeSingle();
+
+  if (friendUserError) throw friendUserError;
+  if (!friendUser) {
+    throw new Error("Utilisateur introuvable.");
+  }
+
+  if (friendUser.id === userId) {
+    throw new Error("Tu ne peux pas t'ajouter toi-même.");
+  }
+
+  const inserts = [
+    { user_id: userId, friend_id: friendUser.id },
+    { user_id: friendUser.id, friend_id: userId }
+  ];
+
+  const { error: insertError } = await supabase
+    .from("user_friends")
+    .insert(inserts);
+
+  if (insertError) {
+    if (insertError.code === "PGRST116") {
+      throw new Error("Vous êtes déjà amis.");
+    }
+    throw insertError;
+  }
+
+  return { username: friendUser.username };
+}
+
+async function getTournaments(userId) {
+  if (!SUPABASE_CONFIGURED || !supabase) {
+    throw new Error("Supabase non configuré. Vérifiez les variables d'environnement dans Vercel.");
+  }
+
+  const { data: tournaments, error: tournamentsError } = await supabase
+    .from("tournaments")
+    .select("id, name, creator_id, budget, duration_days, status, created_at, end_at, winner_id")
+    .order("created_at", { ascending: false });
+
+  if (tournamentsError) throw tournamentsError;
+
+  const userParticipation = await supabase
+    .from("tournament_participants")
+    .select("tournament_id")
+    .eq("user_id", userId);
+
+  if (userParticipation.error) throw userParticipation.error;
+
+  const joinedIds = new Set((userParticipation.data || []).map((row) => row.tournament_id));
+
+  const personIds = new Set();
+  (tournaments || []).forEach((t) => {
+    personIds.add(t.creator_id);
+    if (t.winner_id) personIds.add(t.winner_id);
+  });
+
+  const { data: users, error: usersError } = await supabase
+    .from("users")
+    .select("id, username")
+    .in("id", Array.from(personIds));
+
+  if (usersError) throw usersError;
+
+  const userMap = (users || []).reduce((map, user) => {
+    map[user.id] = user.username;
+    return map;
+  }, {});
+
+  return (tournaments || []).map((tournament) => ({
+    id: tournament.id,
+    name: tournament.name,
+    budget: Number(tournament.budget),
+    durationDays: Number(tournament.duration_days),
+    status: tournament.status,
+    createdAt: tournament.created_at,
+    endAt: tournament.end_at,
+    creator: userMap[tournament.creator_id] || "Utilisateur",
+    winner: tournament.winner_id ? userMap[tournament.winner_id] || "" : null,
+    joined: joinedIds.has(tournament.id),
+    canFinish: tournament.creator_id === userId && tournament.status !== "FINISHED"
+  }));
+}
+
+async function createTournament(userId, name, durationDays, budget) {
+  if (!name || !durationDays || !budget) {
+    throw new Error("Nom, durée et budget sont requis.");
+  }
+
+  const endAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: tournament, error: createError } = await supabase
+    .from("tournaments")
+    .insert([{ creator_id: userId, name, budget, duration_days: durationDays, status: "OPEN", end_at: endAt }])
+    .select("id")
+    .single();
+
+  if (createError) throw createError;
+
+  const { error: participantError } = await supabase
+    .from("tournament_participants")
+    .insert([{ tournament_id: tournament.id, user_id: userId, initial_budget: budget, current_budget: budget }]);
+
+  if (participantError) throw participantError;
+
+  return { id: tournament.id };
+}
+
+async function joinTournament(userId, tournamentId) {
+  const { data: tournament, error: tournamentError } = await supabase
+    .from("tournaments")
+    .select("id, budget, status")
+    .eq("id", tournamentId)
+    .maybeSingle();
+
+  if (tournamentError) throw tournamentError;
+  if (!tournament) throw new Error("Tournoi introuvable.");
+  if (tournament.status !== "OPEN") throw new Error("Ce tournoi n'est plus ouvert.");
+
+  const { error: joinError } = await supabase
+    .from("tournament_participants")
+    .insert([{ tournament_id: tournamentId, user_id: userId, initial_budget: tournament.budget, current_budget: tournament.budget }]);
+
+  if (joinError) {
+    if (joinError.code === "PGRST116") {
+      throw new Error("Vous participez déjà à ce tournoi.");
+    }
+    throw joinError;
+  }
+
+  return { message: "Inscription au tournoi réussie." };
+}
+
+async function finishTournament(userId, tournamentId) {
+  const { data: tournament, error: tournamentError } = await supabase
+    .from("tournaments")
+    .select("id, creator_id, status")
+    .eq("id", tournamentId)
+    .maybeSingle();
+
+  if (tournamentError) throw tournamentError;
+  if (!tournament) throw new Error("Tournoi introuvable.");
+  if (tournament.creator_id !== userId) throw new Error("Seul le créateur peut terminer ce tournoi.");
+  if (tournament.status === "FINISHED") throw new Error("Ce tournoi est déjà terminé.");
+
+  const { data: participants, error: participantsError } = await supabase
+    .from("tournament_participants")
+    .select("user_id, current_budget")
+    .eq("tournament_id", tournamentId);
+
+  if (participantsError) throw participantsError;
+  if (!participants || participants.length === 0) {
+    throw new Error("Aucun participant dans ce tournoi.");
+  }
+
+  const winner = participants.reduce((best, current) => {
+    if (!best || Number(current.current_budget) > Number(best.current_budget)) return current;
+    return best;
+  }, null);
+
+  const currentPoints = winner?.victory_points ?? 0;
+  const { data: winnerUser, error: winnerError } = await supabase
+    .from("users")
+    .select("victory_points")
+    .eq("id", winner.user_id)
+    .single();
+
+  if (winnerError) throw winnerError;
+
+  const newPoints = Number(winnerUser.victory_points || 0) + 10;
+  const { error: updatePointsError } = await supabase
+    .from("users")
+    .update({ victory_points: newPoints })
+    .eq("id", winner.user_id);
+
+  if (updatePointsError) throw updatePointsError;
+
+  const { error: updateTournamentError } = await supabase
+    .from("tournaments")
+    .update({ status: "FINISHED", winner_id: winner.user_id })
+    .eq("id", tournamentId);
+
+  if (updateTournamentError) throw updateTournamentError;
+
+  return { winnerId: winner.user_id, victoryPoints: newPoints };
 }
 
 // =====================
@@ -603,6 +843,78 @@ app.post("/api/vendre", verifyToken, async (req, res, next) => {
     }
 
     res.json(await vendreAction(req.userId, symbole, quantite));
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get("/api/friends", verifyToken, async (req, res, next) => {
+  try {
+    res.json(await getFriends(req.userId));
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post("/api/friends", verifyToken, async (req, res, next) => {
+  try {
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ message: "Nom d'ami requis." });
+    }
+
+    const result = await addFriend(req.userId, username);
+    res.json({ message: `Ami ${result.username} ajouté.`, friend: result });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get("/api/tournaments", verifyToken, async (req, res, next) => {
+  try {
+    res.json(await getTournaments(req.userId));
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post("/api/tournaments", verifyToken, async (req, res, next) => {
+  try {
+    const { name, durationDays, budget } = req.body;
+
+    if (!name || !durationDays || !budget) {
+      return res.status(400).json({ message: "Nom, durée et budget sont requis." });
+    }
+
+    const result = await createTournament(req.userId, String(name).trim(), Number(durationDays), Number(budget));
+    res.json({ message: "Tournoi créé.", tournamentId: result.id });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post("/api/tournaments/:id/join", verifyToken, async (req, res, next) => {
+  try {
+    const tournamentId = Number(req.params.id);
+    if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
+      return res.status(400).json({ message: "ID de tournoi invalide." });
+    }
+
+    res.json(await joinTournament(req.userId, tournamentId));
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post("/api/tournaments/:id/finish", verifyToken, async (req, res, next) => {
+  try {
+    const tournamentId = Number(req.params.id);
+    if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
+      return res.status(400).json({ message: "ID de tournoi invalide." });
+    }
+
+    const result = await finishTournament(req.userId, tournamentId);
+    res.json({ message: "Tournoi terminé.", winnerId: result.winnerId, victoryPoints: result.victoryPoints });
   } catch (e) {
     next(e);
   }
