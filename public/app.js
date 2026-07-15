@@ -23,6 +23,7 @@ const tournamentForm = document.querySelector("#tournamentForm");
 const tournamentName = document.querySelector("#tournamentName");
 const tournamentDuration = document.querySelector("#tournamentDuration");
 const tournamentBudget = document.querySelector("#tournamentBudget");
+const tournamentPrivacy = document.querySelector("#tournamentPrivacy");
 const tournamentMessage = document.querySelector("#tournamentMessage");
 const tournamentsList = document.querySelector("#tournamentsList");
 const segments = document.querySelectorAll(".segment");
@@ -166,9 +167,10 @@ async function renderTournaments(items) {
         <div>
           <strong>${item.name}</strong>
           <div class="tournament-meta">
-            <span>${item.creator === item.creator ? item.creator : item.creator}</span>
+            <span>Créateur : ${item.creator}</span>
             <span>Budget : ${formatMoney(item.budget)}</span>
             <span>${item.durationDays} jour(s)</span>
+            <span>Confidentialité : ${item.privacy}</span>
             <span>Status : ${item.status}</span>
             ${item.winner ? `<span>Vainqueur : ${item.winner}</span>` : ""}
           </div>
@@ -186,6 +188,7 @@ async function loadPortfolio() {
   const portefeuille = await api("/api/portefeuille");
   balance.textContent = formatMoney(portefeuille.argent);
   victoryPointsEl.textContent = portefeuille.victoryPoints || 0;
+  document.querySelector("#userDisplay").textContent = portefeuille.username ? `Bonjour ${portefeuille.username}` : "Invité";
   renderPositions(portefeuille.positions);
   renderTransactions(portefeuille.transactions);
   await loadFriends();
@@ -256,10 +259,11 @@ async function createTournamentHandler(event) {
   try {
     const result = await api("/api/tournaments", {
       method: "POST",
-      body: JSON.stringify({ name, durationDays, budget })
+      body: JSON.stringify({ name, durationDays, budget, privacy: tournamentPrivacy.value })
     });
 
     tournamentName.value = "";
+    tournamentPrivacy.value = "PUBLIC";
     setMessage(tournamentMessage, `Tournoi créé (#${result.tournamentId}).`, "success");
     await loadTournaments();
   } catch (error) {

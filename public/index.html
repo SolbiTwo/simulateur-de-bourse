@@ -13,6 +13,7 @@
         <h1>Simulateur de bourse</h1>
       </div>
       <div class="topbar-actions">
+        <span id="userDisplay" class="user-display">Invité</span>
         <button id="loginButton" class="ghost-button" type="button">Connexion</button>
         <button id="logoutButton" class="ghost-button" type="button" style="display: none;">Déconnexion</button>
       </div>
@@ -157,6 +158,14 @@
               <input id="tournamentBudget" type="number" min="100" step="100" value="1000">
             </label>
           </div>
+          <label>
+            Confidentialité
+            <select id="tournamentPrivacy">
+              <option value="PUBLIC">Public</option>
+              <option value="FRIENDS">Amis</option>
+              <option value="INVITE">Invitation</option>
+            </select>
+          </label>
           <button type="submit">Créer</button>
         </form>
 

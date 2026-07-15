@@ -174,10 +174,11 @@ async function getPortefeuille(userId) {
   if (LOCAL_AUTH) {
     const db = readLocalDb();
     const user = Object.values(db.users).find(u => u.id === userId || u.username === userId);
-    if (!user) return { argent: 0, victoryPoints: 0, positions: [], transactions: [] };
+    if (!user) return { argent: 0, victoryPoints: 0, username: null, positions: [], transactions: [] };
     return {
       argent: Number(user.argent ?? 0),
       victoryPoints: Number(user.victoryPoints ?? 0),
+      username: user.username,
       positions: (user.positions || []).map(p => ({ symbole: p.symbole, quantite: Number(p.quantite) })),
       transactions: (user.transactions || []).slice(-8).reverse().map(t => ({ type: t.type, symbole: t.symbole, quantite: t.quantite, prixUnitaire: t.prix_unitaire, total: t.total, date: t.date }))
     };
@@ -235,9 +236,20 @@ async function getPortefeuille(userId) {
     victoryPoints = 0;
   }
 
+  const { data: user, error: userError } = await supabase
+    .from("users")
+    .select("username")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (userError && userError.code !== "PGRST116") {
+    throw userError;
+  }
+
   return {
     argent: Number(portefeuille?.argent ?? 0),
     victoryPoints,
+    username: user?.username || null,
     positions: (positions || []).map(p => ({
       symbole: p.symbole,
       quantite: Number(p.quantite)
@@ -333,7 +345,7 @@ async function getTournaments(userId) {
 
   const { data: tournaments, error: tournamentsError } = await supabase
     .from("tournaments")
-    .select("id, name, creator_id, budget, duration_days, status, created_at, end_at, winner_id")
+    .select("id, name, creator_id, budget, duration_days, privacy, status, created_at, end_at, winner_id")
     .order("created_at", { ascending: false });
 
   if (tournamentsError) throw tournamentsError;
@@ -370,6 +382,7 @@ async function getTournaments(userId) {
     name: tournament.name,
     budget: Number(tournament.budget),
     durationDays: Number(tournament.duration_days),
+    privacy: tournament.privacy || "PUBLIC",
     status: tournament.status,
     createdAt: tournament.created_at,
     endAt: tournament.end_at,
@@ -380,16 +393,18 @@ async function getTournaments(userId) {
   }));
 }
 
-async function createTournament(userId, name, durationDays, budget) {
+async function createTournament(userId, name, durationDays, budget, privacy = "PUBLIC") {
   if (!name || !durationDays || !budget) {
     throw new Error("Nom, durée et budget sont requis.");
   }
 
+  const allowedPrivacy = ["PUBLIC", "FRIENDS", "INVITE"];
+  const privacyValue = allowedPrivacy.includes(String(privacy).toUpperCase()) ? String(privacy).toUpperCase() : "PUBLIC";
   const endAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: tournament, error: createError } = await supabase
     .from("tournaments")
-    .insert([{ creator_id: userId, name, budget, duration_days: durationDays, status: "OPEN", end_at: endAt }])
+    .insert([{ creator_id: userId, name, budget, duration_days: durationDays, privacy: privacyValue, status: "OPEN", end_at: endAt }])
     .select("id")
     .single();
 
@@ -894,13 +909,13 @@ app.get("/api/tournaments", verifyToken, async (req, res, next) => {
 
 app.post("/api/tournaments", verifyToken, async (req, res, next) => {
   try {
-    const { name, durationDays, budget } = req.body;
+    const { name, durationDays, budget, privacy } = req.body;
 
     if (!name || !durationDays || !budget) {
       return res.status(400).json({ message: "Nom, durée et budget sont requis." });
     }
 
-    const result = await createTournament(req.userId, String(name).trim(), Number(durationDays), Number(budget));
+    const result = await createTournament(req.userId, String(name).trim(), Number(durationDays), Number(budget), privacy);
     res.json({ message: "Tournoi créé.", tournamentId: result.id });
   } catch (e) {
     next(e);

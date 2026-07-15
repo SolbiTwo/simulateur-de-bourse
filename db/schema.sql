@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
   name TEXT NOT NULL,
   budget NUMERIC(12, 2) NOT NULL CHECK (budget > 0),
   duration_days INTEGER NOT NULL CHECK (duration_days > 0),
+  privacy TEXT NOT NULL CHECK (privacy IN ('PUBLIC', 'FRIENDS', 'INVITE')) DEFAULT 'PUBLIC',
   status TEXT NOT NULL CHECK (status IN ('OPEN', 'FINISHED')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   end_at TIMESTAMPTZ NOT NULL,
@@ -55,6 +56,14 @@ CREATE TABLE IF NOT EXISTS tournament_participants (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   initial_budget NUMERIC(12, 2) NOT NULL CHECK (initial_budget >= 0),
   current_budget NUMERIC(12, 2) NOT NULL CHECK (current_budget >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(tournament_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS tournament_invites (
+  id BIGSERIAL PRIMARY KEY,
+  tournament_id BIGINT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(tournament_id, user_id)
 );
