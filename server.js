@@ -803,6 +803,31 @@ async function buyTournamentAction(userId, tournamentId, symbole, quantite) {
     return { ok: false, message: "Budget de tournoi insuffisant." };
   }
 
+  const { data: position, error: positionError } = await supabase
+    .from("tournament_positions")
+    .select("id, quantite")
+    .eq("tournament_id", tournamentId)
+    .eq("user_id", userId)
+    .eq("symbole", symbole)
+    .maybeSingle();
+
+  if (positionError) throw positionError;
+
+  if (position) {
+    const { error: updatePosError } = await supabase
+      .from("tournament_positions")
+      .update({ quantite: position.quantite + quantite, updated_at: new Date().toISOString() })
+      .eq("id", position.id);
+
+    if (updatePosError) throw updatePosError;
+  } else {
+    const { error: insertPosError } = await supabase
+      .from("tournament_positions")
+      .insert([{ tournament_id: tournamentId, user_id: userId, symbole, quantite }]);
+
+    if (insertPosError) throw insertPosError;
+  }
+
   const { error: updateError } = await supabase
     .from("tournament_participants")
     .update({ current_budget: currentBudget - total })
@@ -817,6 +842,82 @@ async function buyTournamentAction(userId, tournamentId, symbole, quantite) {
     total,
     currentBudget: currentBudget - total
   };
+}
+
+async function sellTournamentAction(userId, tournamentId, symbole, quantite) {
+  const cours = await obtenirCours(symbole);
+  const total = cours.prix * quantite;
+
+  const { data: participant, error: participantError } = await supabase
+    .from("tournament_participants")
+    .select("id, current_budget")
+    .eq("tournament_id", tournamentId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (participantError) throw participantError;
+  if (!participant) {
+    throw new Error("Vous ne participez pas à ce tournoi.");
+  }
+
+  const { data: position, error: positionError } = await supabase
+    .from("tournament_positions")
+    .select("id, quantite")
+    .eq("tournament_id", tournamentId)
+    .eq("user_id", userId)
+    .eq("symbole", symbole)
+    .maybeSingle();
+
+  if (positionError) throw positionError;
+  if (!position || Number(position.quantite) < quantite) {
+    return { ok: false, message: "Pas assez d'actions de tournoi pour vendre." };
+  }
+
+  const newQuantite = Number(position.quantite) - quantite;
+
+  if (newQuantite === 0) {
+    const { error: deleteError } = await supabase
+      .from("tournament_positions")
+      .delete()
+      .eq("id", position.id);
+
+    if (deleteError) throw deleteError;
+  } else {
+    const { error: updatePosError } = await supabase
+      .from("tournament_positions")
+      .update({ quantite: newQuantite, updated_at: new Date().toISOString() })
+      .eq("id", position.id);
+
+    if (updatePosError) throw updatePosError;
+  }
+
+  const currentBudget = Number(participant.current_budget || 0);
+  const { error: updateError } = await supabase
+    .from("tournament_participants")
+    .update({ current_budget: currentBudget + total })
+    .eq("id", participant.id);
+
+  if (updateError) throw updateError;
+
+  return {
+    ok: true,
+    message: "Vente pour tournoi effectuée.",
+    cours,
+    total,
+    currentBudget: currentBudget + total
+  };
+}
+
+async function getTournamentPositions(userId, tournamentId) {
+  const { data, error } = await supabase
+    .from("tournament_positions")
+    .select("symbole, quantite")
+    .eq("tournament_id", tournamentId)
+    .eq("user_id", userId)
+    .order("symbole", { ascending: true });
+
+  if (error) throw error;
+  return data || [];
 }
 
 // =====================
@@ -1111,6 +1212,44 @@ app.post("/api/tournaments/:id/trade", verifyToken, async (req, res, next) => {
     }
 
     res.json({ message: result.message, total: result.total, currentBudget: result.currentBudget });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post("/api/tournaments/:id/sell", verifyToken, async (req, res, next) => {
+  try {
+    const tournamentId = Number(req.params.id);
+    const symbole = nettoyerSymbole(req.body.symbole, req.body.marche);
+    const quantite = nettoyerQuantite(req.body.quantite);
+
+    if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
+      return res.status(400).json({ message: "ID de tournoi invalide." });
+    }
+    if (!symbole || !quantite) {
+      return res.status(400).json({ message: "Symbole ou quantite invalide." });
+    }
+
+    const result = await sellTournamentAction(req.userId, tournamentId, symbole, quantite);
+    if (!result.ok) {
+      return res.status(400).json({ message: result.message });
+    }
+
+    res.json({ message: result.message, total: result.total, currentBudget: result.currentBudget });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get("/api/tournaments/:id/positions", verifyToken, async (req, res, next) => {
+  try {
+    const tournamentId = Number(req.params.id);
+    if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
+      return res.status(400).json({ message: "ID de tournoi invalide." });
+    }
+
+    const positions = await getTournamentPositions(req.userId, tournamentId);
+    res.json(positions);
   } catch (e) {
     next(e);
   }

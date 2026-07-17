@@ -60,6 +60,17 @@ CREATE TABLE IF NOT EXISTS tournament_participants (
   UNIQUE(tournament_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS tournament_positions (
+  id BIGSERIAL PRIMARY KEY,
+  tournament_id BIGINT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  symbole TEXT NOT NULL,
+  quantite INTEGER NOT NULL CHECK (quantite >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(tournament_id, user_id, symbole)
+);
+
 CREATE TABLE IF NOT EXISTS tournament_invites (
   id BIGSERIAL PRIMARY KEY,
   tournament_id BIGINT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,

@@ -9,11 +9,14 @@ const quoteTotalEl = document.querySelector("#quoteTotal");
 const currentBudgetEl = document.querySelector("#currentBudget");
 const currentStatusEl = document.querySelector("#currentStatus");
 const positionsContainer = document.querySelector("#tournamentPositions");
+const tradeModeButtons = document.querySelectorAll(".tournament-trade-mode .segment");
+const tournamentTradeForm = document.querySelector("#tournamentTradeForm");
 const backToApp = document.querySelector("#backToApp");
 const logoutButton = document.querySelector("#logoutButton");
 
 let tournaments = [];
 let selectedTournament = null;
+let currentTradeMode = "acheter";
 
 function setMessage(element, message, type = "muted") {
   element.className = type;
@@ -80,12 +83,27 @@ function updateTournamentSummary() {
   currentStatusEl.textContent = `${selectedTournament.status} · ${selectedTournament.participants?.length || 0} participant(s)`;
 }
 
+function updateTradeMode(mode) {
+  currentTradeMode = mode;
+  tradeModeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.tradeMode === mode);
+  });
+
+  tradeButton.textContent = mode === "acheter" ? "Acheter pour le tournoi" : "Vendre pour le tournoi";
+  const title = document.querySelector(".panel-heading h2");
+  if (title) {
+    title.textContent = mode === "acheter"
+      ? "Acheter une action pour le tournoi"
+      : "Vendre une action du tournoi";
+  }
+}
+
 async function loadTournaments() {
   try {
     const items = await api("/api/tournaments");
     renderTournamentOptions(items.filter((t) => t.status === "OPEN" && t.joined));
     await refreshQuote();
-    await refreshPositions();
+    await refreshTournamentPositions();
   } catch (error) {
     setMessage(tradeMessage, error.message, "error");
   }
@@ -101,7 +119,7 @@ function updateQuoteDisplay(price) {
 
 function renderPositions(items) {
   if (!items || !items.length) {
-    positionsContainer.innerHTML = '<div class="empty">Aucune position.</div>';
+    positionsContainer.innerHTML = '<div class="empty">Aucune position de tournoi.</div>';
     return;
   }
 
@@ -112,7 +130,7 @@ function renderPositions(items) {
           <div class="symbol">${item.symbole}</div>
           <div class="muted">${item.quantite} action(s)</div>
         </div>
-        <div class="money">${formatMoney(item.total)}</div>
+        <div class="action-label">Tournoi</div>
       </div>
     `)
     .join("");
@@ -120,11 +138,17 @@ function renderPositions(items) {
 
 async function refreshPositions() {
   try {
-    const portefeuille = await api("/api/portefeuille");
-    renderPositions(portefeuille.positions || []);
+    const tournoiPositions = selectedTournament
+      ? await api(`/api/tournaments/${selectedTournament.id}/positions`)
+      : [];
+    renderPositions(tournoiPositions || []);
   } catch (error) {
-    positionsContainer.innerHTML = '<div class="empty">Impossible de charger les positions.</div>';
+    positionsContainer.innerHTML = '<div class="empty">Impossible de charger les positions de tournoi.</div>';
   }
+}
+
+async function refreshTournamentPositions() {
+  await refreshPositions();
 }
 
 async function refreshQuote() {
@@ -172,7 +196,7 @@ async function submitTrade(event) {
   setMessage(tradeMessage, "Ordre en cours...", "muted");
 
   try {
-    const result = await api(`/api/tournaments/${selectedTournament.id}/trade`, {
+    const result = await api(`/api/tournaments/${selectedTournament.id}/${currentTradeMode === "acheter" ? "trade" : "sell"}`, {
       method: "POST",
       body: JSON.stringify({ symbole, quantite, marche })
     });
@@ -196,7 +220,13 @@ logoutButton.addEventListener("click", () => {
   window.location.href = "/login.html";
 });
 
-tournamentSelect.addEventListener("change", handleTournamentChange);
+tournamentSelect.addEventListener("change", async () => {
+  handleTournamentChange();
+  await refreshTournamentPositions();
+});
+tradeModeButtons.forEach((button) => {
+  button.addEventListener("click", () => updateTradeMode(button.dataset.tradeMode));
+});
 tradeMarket.addEventListener("change", refreshQuote);
 tradeSymbol.addEventListener("input", () => {
   if (tradeSymbol.value.trim().length >= 1) {
@@ -204,7 +234,7 @@ tradeSymbol.addEventListener("input", () => {
   }
 });
 tradeQuantity.addEventListener("input", refreshQuote);
-tradeButton.addEventListener("click", submitTrade);
+tournamentTradeForm.addEventListener("submit", submitTrade);
 
 loadTournaments().catch((error) => {
   setMessage(tradeMessage, error.message, "error");
