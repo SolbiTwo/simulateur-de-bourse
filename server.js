@@ -391,6 +391,26 @@ async function getTournaments(userId) {
 
   if (participantUsersError) throw participantUsersError;
 
+  const allUserIds = Array.from(new Set([
+    ...participantUserIds,
+    ...(tournaments || []).map((tournament) => tournament.creator_id),
+    ...(tournaments || []).map((tournament) => tournament.winner_id)
+  ].filter(Boolean)));
+
+  const { data: allUsers, error: allUsersError } = allUserIds.length
+    ? await supabase
+      .from("users")
+      .select("id, username")
+      .in("id", allUserIds)
+    : { data: [], error: null };
+
+  if (allUsersError) throw allUsersError;
+
+  const userMap = (allUsers || []).reduce((map, user) => {
+    map[user.id] = user.username;
+    return map;
+  }, {});
+
   const { data: positionRows, error: positionRowsError } = participantUserIds.length
     ? await supabase
       .from("user_positions")
