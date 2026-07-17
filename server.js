@@ -377,20 +377,25 @@ async function getTournaments(userId) {
     return map;
   }, {});
 
-  return (tournaments || []).map((tournament) => ({
-    id: tournament.id,
-    name: tournament.name,
-    budget: Number(tournament.budget),
-    durationDays: Number(tournament.duration_days),
-    privacy: tournament.privacy || "PUBLIC",
-    status: tournament.status,
-    createdAt: tournament.created_at,
-    endAt: tournament.end_at,
-    creator: userMap[tournament.creator_id] || "Utilisateur",
-    winner: tournament.winner_id ? userMap[tournament.winner_id] || "" : null,
-    joined: joinedIds.has(tournament.id),
-    canFinish: tournament.creator_id === userId && tournament.status !== "FINISHED"
-  }));
+  return (tournaments || []).map((tournament) => {
+    const creatorId = String(tournament.creator_id || "").toLowerCase();
+    const currentUserId = String(userId || "").toLowerCase();
+
+    return {
+      id: tournament.id,
+      name: tournament.name,
+      budget: Number(tournament.budget),
+      durationDays: Number(tournament.duration_days),
+      privacy: tournament.privacy || "PUBLIC",
+      status: tournament.status,
+      createdAt: tournament.created_at,
+      endAt: tournament.end_at,
+      creator: userMap[tournament.creator_id] || "Utilisateur",
+      winner: tournament.winner_id ? userMap[tournament.winner_id] || "" : null,
+      joined: joinedIds.has(tournament.id),
+      canFinish: creatorId === currentUserId && tournament.status !== "FINISHED"
+    };
+  });
 }
 
 async function createTournament(userId, name, durationDays, budget, privacy = "PUBLIC") {
@@ -453,7 +458,9 @@ async function finishTournament(userId, tournamentId) {
 
   if (tournamentError) throw tournamentError;
   if (!tournament) throw new Error("Tournoi introuvable.");
-  if (tournament.creator_id !== userId) throw new Error("Seul le créateur peut terminer ce tournoi.");
+  const creatorId = String(tournament.creator_id || "").toLowerCase();
+  const currentUserId = String(userId || "").toLowerCase();
+  if (creatorId !== currentUserId) throw new Error("Seul le créateur peut terminer ce tournoi.");
   if (tournament.status === "FINISHED") throw new Error("Ce tournoi est déjà terminé.");
 
   const { data: participants, error: participantsError } = await supabase
