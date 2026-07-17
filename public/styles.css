@@ -341,6 +341,88 @@ label {
   min-width: 88px;
 }
 
+.tournament-detail-panel {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 12px;
+  background: rgba(247, 249, 251, 0.95);
+  border: 1px solid var(--line);
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.status-badge {
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.status-open {
+  background: var(--blue);
+}
+
+.status-finished {
+  background: var(--muted);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.detail-grid div {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.detail-grid strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.2rem;
+}
+
+.scoreboard-panel {
+  overflow-x: auto;
+}
+
+.scoreboard-table-wrapper {
+  min-width: 600px;
+}
+
+.scoreboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.scoreboard-table th,
+.scoreboard-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.scoreboard-table th {
+  font-size: 0.88rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scoreboard-table tbody tr:hover {
+  background: rgba(39, 110, 241, 0.06);
+}
+
 .social-panel,
 .tournament-panel {
   grid-column: 1 / -1;

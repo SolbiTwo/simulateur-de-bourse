@@ -371,21 +371,50 @@ async function getTournaments(userId) {
   const invitedIds = new Set((inviteRows || []).map((row) => row.tournament_id));
   const joinedIds = new Set((userParticipation || []).map((row) => row.tournament_id));
 
-  const personIds = new Set();
-  (tournaments || []).forEach((t) => {
-    personIds.add(t.creator_id);
-    if (t.winner_id) personIds.add(t.winner_id);
-  });
+  const tournamentIds = (tournaments || []).map((t) => t.id);
+  const participantsQuery = tournamentIds.length
+    ? await supabase
+      .from("tournament_participants")
+      .select("id, tournament_id, user_id, initial_budget, current_budget")
+      .in("tournament_id", tournamentIds)
+    : { data: [], error: null };
 
-  const { data: users, error: usersError } = await supabase
-    .from("users")
-    .select("id, username")
-    .in("id", Array.from(personIds));
+  if (participantsQuery.error) throw participantsQuery.error;
 
-  if (usersError) throw usersError;
+  const participantUserIds = Array.from(new Set((participantsQuery.data || []).map((row) => row.user_id)));
+  const { data: participantUsers, error: participantUsersError } = participantUserIds.length
+    ? await supabase
+      .from("users")
+      .select("id, username")
+      .in("id", participantUserIds)
+    : { data: [], error: null };
 
-  const userMap = (users || []).reduce((map, user) => {
-    map[user.id] = user.username;
+  if (participantUsersError) throw participantUsersError;
+
+  const { data: positionRows, error: positionRowsError } = participantUserIds.length
+    ? await supabase
+      .from("user_positions")
+      .select("user_id, quantite")
+      .in("user_id", participantUserIds)
+    : { data: [], error: null };
+
+  if (positionRowsError) throw positionRowsError;
+
+  const positionsByUser = (positionRows || []).reduce((map, row) => {
+    map[row.user_id] = (map[row.user_id] || 0) + Number(row.quantite || 0);
+    return map;
+  }, {});
+
+  const participantsByTournament = (participantsQuery.data || []).reduce((map, participant) => {
+    if (!map[participant.tournament_id]) map[participant.tournament_id] = [];
+    map[participant.tournament_id].push({
+      id: participant.id,
+      userId: participant.user_id,
+      username: (participantUsers || []).find((u) => u.id === participant.user_id)?.username || "Utilisateur",
+      initialBudget: Number(participant.initial_budget),
+      currentBudget: Number(participant.current_budget),
+      actions: positionsByUser[participant.user_id] || 0
+    });
     return map;
   }, {});
 
@@ -418,7 +447,8 @@ async function getTournaments(userId) {
       creator: userMap[tournament.creator_id] || "Utilisateur",
       winner: tournament.winner_id ? userMap[tournament.winner_id] || "" : null,
       joined: joinedIds.has(tournament.id),
-      canFinish: String(tournament.creator_id || "").toLowerCase() === currentUserId && tournament.status !== "FINISHED"
+      canFinish: String(tournament.creator_id || "").toLowerCase() === currentUserId && tournament.status !== "FINISHED",
+      participants: (participantsByTournament[tournament.id] || []).sort((a, b) => b.currentBudget - a.currentBudget)
     }));
 }
 

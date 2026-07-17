@@ -26,6 +26,14 @@ const tournamentBudget = document.querySelector("#tournamentBudget");
 const tournamentPrivacy = document.querySelector("#tournamentPrivacy");
 const tournamentMessage = document.querySelector("#tournamentMessage");
 const tournamentsList = document.querySelector("#tournamentsList");
+const tournamentDetailPanel = document.querySelector("#tournamentDetailPanel");
+const tournamentDetailName = document.querySelector("#tournamentDetailName");
+const tournamentDetailBudget = document.querySelector("#tournamentDetailBudget");
+const tournamentDetailRemaining = document.querySelector("#tournamentDetailRemaining");
+const tournamentDetailCount = document.querySelector("#tournamentDetailCount");
+const tournamentDetailPrivacy = document.querySelector("#tournamentDetailPrivacy");
+const tournamentStatusBadge = document.querySelector("#tournamentStatusBadge");
+const tournamentParticipantsList = document.querySelector("#tournamentParticipantsList");
 const segments = document.querySelectorAll(".segment");
 
 let currentAction = "acheter";
@@ -158,12 +166,13 @@ async function renderFriends(items) {
 async function renderTournaments(items) {
   if (!items || !items.length) {
     tournamentsList.innerHTML = '<div class="empty">Aucun tournoi disponible.</div>';
+    tournamentDetailPanel.style.display = "none";
     return;
   }
 
   tournamentsList.innerHTML = items
     .map((item) => `
-      <div class="tournament-item">
+      <div class="tournament-item" data-id="${item.id}">
         <div>
           <strong>${item.name}</strong>
           <div class="tournament-meta">
@@ -176,12 +185,15 @@ async function renderTournaments(items) {
           </div>
         </div>
         <div class="tournament-actions">
+          <button type="button" data-action="view" data-id="${item.id}">Voir</button>
           ${item.status === "OPEN" && !item.joined ? `<button type="button" data-action="join" data-id="${item.id}">Rejoindre</button>` : ""}
           ${item.canFinish ? `<button type="button" data-action="finish" data-id="${item.id}">Terminer</button>` : ""}
         </div>
       </div>
     `)
     .join("");
+
+  renderTournamentDetails(items[0]);
 }
 
 async function loadPortfolio() {
@@ -273,6 +285,42 @@ async function createTournamentHandler(event) {
   }
 }
 
+async function renderTournamentDetails(tournament) {
+  if (!tournament) {
+    tournamentDetailPanel.style.display = "none";
+    return;
+  }
+
+  tournamentDetailPanel.style.display = "block";
+  tournamentDetailName.textContent = tournament.name;
+  tournamentDetailBudget.textContent = formatMoney(tournament.budget);
+  tournamentDetailPrivacy.textContent = tournament.privacy;
+  tournamentDetailCount.textContent = tournament.participants.length;
+  tournamentStatusBadge.textContent = tournament.status;
+  tournamentStatusBadge.className = `status-badge status-${tournament.status.toLowerCase()}`;
+  tournamentDetailRemaining.textContent = formatRemainingTime(tournament.endAt);
+
+  tournamentParticipantsList.innerHTML = tournament.participants
+    .map((participant) => `
+      <tr>
+        <td>${participant.username}</td>
+        <td>${formatMoney(participant.currentBudget)}</td>
+        <td>${participant.actions}</td>
+        <td>${formatMoney(participant.initialBudget)}</td>
+      </tr>
+    `)
+    .join("");
+}
+
+function formatRemainingTime(endAt) {
+  const diff = new Date(endAt) - new Date();
+  if (diff <= 0) return "Terminé";
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  return `${days}j ${hours}h ${minutes}m`;
+}
+
 async function tournamentActionHandler(event) {
   const button = event.target.closest("button[data-action]");
   if (!button) return;
@@ -284,6 +332,13 @@ async function tournamentActionHandler(event) {
   button.disabled = true;
 
   try {
+    if (action === "view") {
+      const tournaments = await api("/api/tournaments");
+      const selected = tournaments.find((t) => String(t.id) === String(id));
+      renderTournamentDetails(selected);
+      return;
+    }
+
     if (action === "join") {
       const result = await api(`/api/tournaments/${id}/join`, { method: "POST" });
       setMessage(tournamentMessage, result.message, "success");
