@@ -504,6 +504,26 @@ label {
   font-size: 1.25rem;
 }
 
+.tournament-trade-page .quote-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 20px 0 8px;
+}
+
+.tournament-trade-page .quote-summary div {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(220, 227, 234, 0.72);
+}
+
+.tournament-trade-page .quote-summary strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.1rem;
+}
+
 .quote-result {
   display: grid;
   gap: 10px;
@@ -606,6 +626,34 @@ input:focus,
 select:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 4px rgba(39, 110, 241, 0.12);
+}
+
+.tournament-positions-panel {
+  margin-top: 24px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(220, 227, 234, 0.72);
+}
+
+.tournament-positions-panel .eyebrow {
+  margin-bottom: 14px;
+}
+
+.tournament-positions-panel .positions-list {
+  padding: 0;
+}
+
+.tournament-positions-panel .position-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  border: 1px solid rgba(220, 227, 234, 0.86);
+  background: #fff;
+  padding: 14px 16px;
+  border-radius: 14px;
 }
 
 button {

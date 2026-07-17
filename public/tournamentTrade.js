@@ -4,8 +4,11 @@ const tradeSymbol = document.querySelector("#tradeSymbol");
 const tradeQuantity = document.querySelector("#tradeQuantity");
 const tradeButton = document.querySelector("#tradeButton");
 const tradeMessage = document.querySelector("#tradeMessage");
+const quotePriceEl = document.querySelector("#quotePrice");
+const quoteTotalEl = document.querySelector("#quoteTotal");
 const currentBudgetEl = document.querySelector("#currentBudget");
 const currentStatusEl = document.querySelector("#currentStatus");
+const positionsContainer = document.querySelector("#tournamentPositions");
 const backToApp = document.querySelector("#backToApp");
 const logoutButton = document.querySelector("#logoutButton");
 
@@ -71,7 +74,9 @@ function updateTournamentSummary() {
     return;
   }
 
-  currentBudgetEl.textContent = formatMoney(selectedTournament.budget);
+  currentBudgetEl.textContent = selectedTournament.myBudget != null
+    ? formatMoney(selectedTournament.myBudget)
+    : formatMoney(selectedTournament.budget);
   currentStatusEl.textContent = `${selectedTournament.status} · ${selectedTournament.participants?.length || 0} participant(s)`;
 }
 
@@ -79,8 +84,63 @@ async function loadTournaments() {
   try {
     const items = await api("/api/tournaments");
     renderTournamentOptions(items.filter((t) => t.status === "OPEN" && t.joined));
+    await refreshQuote();
+    await refreshPositions();
   } catch (error) {
     setMessage(tradeMessage, error.message, "error");
+  }
+}
+
+function updateQuoteDisplay(price) {
+  quotePriceEl.textContent = price !== null ? formatMoney(price) : "-";
+  const quantity = Number(tradeQuantity.value);
+  quoteTotalEl.textContent = price !== null && Number.isInteger(quantity) && quantity > 0
+    ? formatMoney(price * quantity)
+    : "-";
+}
+
+function renderPositions(items) {
+  if (!items || !items.length) {
+    positionsContainer.innerHTML = '<div class="empty">Aucune position.</div>';
+    return;
+  }
+
+  positionsContainer.innerHTML = items
+    .map((item) => `
+      <div class="position-row">
+        <div>
+          <div class="symbol">${item.symbole}</div>
+          <div class="muted">${item.quantite} action(s)</div>
+        </div>
+        <div class="money">${formatMoney(item.total)}</div>
+      </div>
+    `)
+    .join("");
+}
+
+async function refreshPositions() {
+  try {
+    const portefeuille = await api("/api/portefeuille");
+    renderPositions(portefeuille.positions || []);
+  } catch (error) {
+    positionsContainer.innerHTML = '<div class="empty">Impossible de charger les positions.</div>';
+  }
+}
+
+async function refreshQuote() {
+  const symbole = tradeSymbol.value.trim().toUpperCase();
+  const marche = tradeMarket.value;
+
+  if (!symbole) {
+    updateQuoteDisplay(null);
+    return;
+  }
+
+  try {
+    const cours = await api(`/api/cours/${encodeURIComponent(symbole)}?marche=${encodeURIComponent(marche)}`);
+    updateQuoteDisplay(Number(cours.prix));
+  } catch (error) {
+    updateQuoteDisplay(null);
   }
 }
 
@@ -106,6 +166,8 @@ async function submitTrade(event) {
     return;
   }
 
+  await refreshQuote();
+
   tradeButton.disabled = true;
   setMessage(tradeMessage, "Ordre en cours...", "muted");
 
@@ -117,6 +179,7 @@ async function submitTrade(event) {
 
     setMessage(tradeMessage, `${result.message} Total : ${formatMoney(result.total)}.`, "success");
     await loadTournaments();
+    await refreshPositions();
   } catch (error) {
     setMessage(tradeMessage, error.message, "error");
   } finally {
@@ -134,8 +197,16 @@ logoutButton.addEventListener("click", () => {
 });
 
 tournamentSelect.addEventListener("change", handleTournamentChange);
+tradeMarket.addEventListener("change", refreshQuote);
+tradeSymbol.addEventListener("input", () => {
+  if (tradeSymbol.value.trim().length >= 1) {
+    refreshQuote();
+  }
+});
+tradeQuantity.addEventListener("input", refreshQuote);
 tradeButton.addEventListener("click", submitTrade);
 
 loadTournaments().catch((error) => {
   setMessage(tradeMessage, error.message, "error");
+  updateQuoteDisplay(null);
 });

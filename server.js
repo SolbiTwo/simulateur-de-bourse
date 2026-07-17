@@ -455,21 +455,27 @@ async function getTournaments(userId) {
       if (privacy === "INVITE" && isInvited) return true;
       return false;
     })
-    .map((tournament) => ({
-      id: tournament.id,
-      name: tournament.name,
-      budget: Number(tournament.budget),
-      durationDays: Number(tournament.duration_days),
-      privacy: tournament.privacy || "PUBLIC",
-      status: tournament.status,
-      createdAt: tournament.created_at,
-      endAt: tournament.end_at,
-      creator: userMap[tournament.creator_id] || "Utilisateur",
-      winner: tournament.winner_id ? userMap[tournament.winner_id] || "" : null,
-      joined: joinedIds.has(tournament.id),
-      canFinish: String(tournament.creator_id || "").toLowerCase() === currentUserId && tournament.status !== "FINISHED",
-      participants: (participantsByTournament[tournament.id] || []).sort((a, b) => b.currentBudget - a.currentBudget)
-    }));
+    .map((tournament) => {
+      const participants = (participantsByTournament[tournament.id] || []).sort((a, b) => b.currentBudget - a.currentBudget);
+      const currentParticipant = participants.find((participant) => String(participant.userId || "").toLowerCase() === currentUserId);
+
+      return {
+        id: tournament.id,
+        name: tournament.name,
+        budget: Number(tournament.budget),
+        durationDays: Number(tournament.duration_days),
+        privacy: tournament.privacy || "PUBLIC",
+        status: tournament.status,
+        createdAt: tournament.created_at,
+        endAt: tournament.end_at,
+        creator: userMap[tournament.creator_id] || "Utilisateur",
+        winner: tournament.winner_id ? userMap[tournament.winner_id] || "" : null,
+        joined: joinedIds.has(tournament.id),
+        canFinish: String(tournament.creator_id || "").toLowerCase() === currentUserId && tournament.status !== "FINISHED",
+        participants,
+        myBudget: currentParticipant ? Number(currentParticipant.currentBudget) : null
+      };
+    });
 }
 
 async function createTournament(userId, name, durationDays, budget, privacy = "PUBLIC") {

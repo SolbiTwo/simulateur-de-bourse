@@ -54,16 +54,32 @@
           <button id="tradeButton" type="submit">Acheter pour le tournoi</button>
         </form>
 
+        <div class="quote-summary">
+          <div>
+            <span class="label">Prix unitaire</span>
+            <strong id="quotePrice">-</strong>
+          </div>
+          <div>
+            <span class="label">Coût total</span>
+            <strong id="quoteTotal">-</strong>
+          </div>
+        </div>
+
         <p id="tradeMessage" class="message muted">Choisis un tournoi, puis achète une action avec son budget.</p>
         <div class="tournament-summary">
           <div>
-            <span class="label">Budget actuel</span>
+            <span class="label">Budget tournoi</span>
             <strong id="currentBudget">-</strong>
           </div>
           <div>
-            <span class="label">Dernière mise à jour</span>
+            <span class="label">Participants</span>
             <strong id="currentStatus">-</strong>
           </div>
+        </div>
+
+        <div class="positions-panel tournament-positions-panel">
+          <p class="eyebrow">Positions personnelles</p>
+          <div id="tournamentPositions" class="positions-list"></div>
         </div>
       </section>
     </main>
