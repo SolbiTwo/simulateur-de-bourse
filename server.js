@@ -343,21 +343,33 @@ async function getTournaments(userId) {
     throw new Error("Supabase non configuré. Vérifiez les variables d'environnement dans Vercel.");
   }
 
-  const { data: tournaments, error: tournamentsError } = await supabase
-    .from("tournaments")
-    .select("id, name, creator_id, budget, duration_days, privacy, status, created_at, end_at, winner_id")
-    .order("created_at", { ascending: false });
+  const [{ data: tournaments, error: tournamentsError }, { data: friendRows, error: friendRowsError }, { data: inviteRows, error: inviteRowsError }, { data: userParticipation, error: participationError }] = await Promise.all([
+    supabase
+      .from("tournaments")
+      .select("id, name, creator_id, budget, duration_days, privacy, status, created_at, end_at, winner_id")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("user_friends")
+      .select("friend_id")
+      .eq("user_id", userId),
+    supabase
+      .from("tournament_invites")
+      .select("tournament_id")
+      .eq("user_id", userId),
+    supabase
+      .from("tournament_participants")
+      .select("tournament_id")
+      .eq("user_id", userId)
+  ]);
 
   if (tournamentsError) throw tournamentsError;
+  if (friendRowsError) throw friendRowsError;
+  if (inviteRowsError) throw inviteRowsError;
+  if (participationError) throw participationError;
 
-  const userParticipation = await supabase
-    .from("tournament_participants")
-    .select("tournament_id")
-    .eq("user_id", userId);
-
-  if (userParticipation.error) throw userParticipation.error;
-
-  const joinedIds = new Set((userParticipation.data || []).map((row) => row.tournament_id));
+  const friendIds = new Set((friendRows || []).map((row) => row.friend_id));
+  const invitedIds = new Set((inviteRows || []).map((row) => row.tournament_id));
+  const joinedIds = new Set((userParticipation || []).map((row) => row.tournament_id));
 
   const personIds = new Set();
   (tournaments || []).forEach((t) => {
@@ -377,11 +389,24 @@ async function getTournaments(userId) {
     return map;
   }, {});
 
-  return (tournaments || []).map((tournament) => {
-    const creatorId = String(tournament.creator_id || "").toLowerCase();
-    const currentUserId = String(userId || "").toLowerCase();
+  const currentUserId = String(userId || "").toLowerCase();
 
-    return {
+  return (tournaments || [])
+    .filter((tournament) => {
+      const privacy = String(tournament.privacy || "PUBLIC").toUpperCase();
+      const creatorId = String(tournament.creator_id || "").toLowerCase();
+      const isCreator = creatorId === currentUserId;
+      const isFriend = friendIds.has(tournament.creator_id);
+      const isInvited = invitedIds.has(tournament.id);
+      const isJoined = joinedIds.has(tournament.id);
+
+      if (privacy === "PUBLIC") return true;
+      if (isCreator || isJoined) return true;
+      if (privacy === "FRIENDS" && isFriend) return true;
+      if (privacy === "INVITE" && isInvited) return true;
+      return false;
+    })
+    .map((tournament) => ({
       id: tournament.id,
       name: tournament.name,
       budget: Number(tournament.budget),
@@ -393,9 +418,8 @@ async function getTournaments(userId) {
       creator: userMap[tournament.creator_id] || "Utilisateur",
       winner: tournament.winner_id ? userMap[tournament.winner_id] || "" : null,
       joined: joinedIds.has(tournament.id),
-      canFinish: creatorId === currentUserId && tournament.status !== "FINISHED"
-    };
-  });
+      canFinish: String(tournament.creator_id || "").toLowerCase() === currentUserId && tournament.status !== "FINISHED"
+    }));
 }
 
 async function createTournament(userId, name, durationDays, budget, privacy = "PUBLIC") {
@@ -427,13 +451,48 @@ async function createTournament(userId, name, durationDays, budget, privacy = "P
 async function joinTournament(userId, tournamentId) {
   const { data: tournament, error: tournamentError } = await supabase
     .from("tournaments")
-    .select("id, budget, status")
+    .select("id, creator_id, budget, status, privacy")
     .eq("id", tournamentId)
     .maybeSingle();
 
   if (tournamentError) throw tournamentError;
   if (!tournament) throw new Error("Tournoi introuvable.");
   if (tournament.status !== "OPEN") throw new Error("Ce tournoi n'est plus ouvert.");
+
+  const currentUserId = String(userId || "").toLowerCase();
+  const creatorId = String(tournament.creator_id || "").toLowerCase();
+  const privacy = String(tournament.privacy || "PUBLIC").toUpperCase();
+  const isCreator = currentUserId === creatorId;
+
+  if (!isCreator) {
+    if (privacy === "FRIENDS") {
+      const { data: friendship, error: friendError } = await supabase
+        .from("user_friends")
+        .select("friend_id")
+        .eq("user_id", tournament.creator_id)
+        .eq("friend_id", userId)
+        .maybeSingle();
+
+      if (friendError) throw friendError;
+      if (!friendship) {
+        throw new Error("Ce tournoi est réservé aux amis du créateur.");
+      }
+    }
+
+    if (privacy === "INVITE") {
+      const { data: invite, error: inviteError } = await supabase
+        .from("tournament_invites")
+        .select("id")
+        .eq("tournament_id", tournamentId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (inviteError) throw inviteError;
+      if (!invite) {
+        throw new Error("Vous n'êtes pas invité à ce tournoi.");
+      }
+    }
+  }
 
   const { error: joinError } = await supabase
     .from("tournament_participants")

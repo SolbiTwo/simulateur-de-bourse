@@ -33,6 +33,88 @@ select {
   font: inherit;
 }
 
+input,
+select,
+button {
+  min-height: 44px;
+}
+
+@media (max-width: 980px) {
+  .layout {
+    grid-template-columns: 1fr;
+    padding: 14px 14px 24px;
+  }
+
+  .summary-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .topbar-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .market-status {
+    justify-content: center;
+  }
+
+  .small-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-item,
+  .tournament-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tournament-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tournament-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel-heading,
+  .small-form,
+  .trade-form,
+  .search-panel,
+  .balance-card,
+  .mini-list {
+    padding: 14px;
+  }
+
+  .balance-card strong {
+    font-size: 2.2rem;
+  }
+
+  .points-badge {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .market-status {
+    font-size: 0.9rem;
+  }
+
+  .segment {
+    width: 100%;
+  }
+
+  .segment + .segment {
+    margin-top: 8px;
+  }
+}
+
 button {
   border: 0;
   cursor: pointer;
