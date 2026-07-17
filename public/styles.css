@@ -428,6 +428,70 @@ label {
   grid-column: 1 / -1;
 }
 
+.tournament-trade-page .layout {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-top: 20px;
+}
+
+.tournament-trade-page .topbar {
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 48px rgba(24, 34, 45, 0.08);
+}
+
+.tournament-trade-page .trade-panel {
+  padding: 28px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,249,251,0.96));
+  border: 1px solid rgba(220, 227, 234, 0.72);
+}
+
+.tournament-trade-page .panel-heading {
+  min-height: auto;
+  padding-bottom: 14px;
+}
+
+.tournament-trade-page h2 {
+  font-size: 1.55rem;
+}
+
+.tournament-trade-page .trade-form {
+  grid-template-columns: 170px 140px 1fr;
+  gap: 14px;
+  align-items: end;
+}
+
+.tournament-trade-page .trade-form button {
+  width: 100%;
+  min-height: 52px;
+}
+
+.tournament-trade-page .trade-form select,
+.tournament-trade-page .trade-form input {
+  border-color: rgba(22, 138, 91, 0.18);
+}
+
+.tournament-trade-page .tournament-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.tournament-trade-page .tournament-summary div {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(220, 227, 234, 0.72);
+}
+
+.tournament-trade-page .tournament-summary strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.25rem;
+}
+
 .quote-result {
   display: grid;
   gap: 10px;
@@ -488,6 +552,29 @@ select {
   padding: 0 12px;
   font-weight: 800;
   outline: none;
+}
+
+.tournament-trade-page .trade-form .wide-field {
+  grid-column: 1 / -1;
+}
+
+.tournament-trade-page .trade-form {
+  grid-template-columns: minmax(160px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr);
+}
+
+.tournament-trade-page .trade-form button {
+  grid-column: 1 / -1;
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: var(--blue);
+}
+
+.tournament-trade-page .topbar-actions button {
+  min-width: 140px;
+}
+
+.tournament-trade-page .trade-panel {
+  box-shadow: 0 20px 60px rgba(24, 34, 45, 0.12);
 }
 
 input[type="password"] {
