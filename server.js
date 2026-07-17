@@ -734,8 +734,6 @@ async function vendreAction(userId, symbole, quantite) {
       .eq("user_id", userId);
 
     if (updateError) throw updateError;
-
-    const newQuantite = position.quantite - quantite;
     if (newQuantite <= 0) {
       const { error: deleteError } = await supabase
         .from("user_positions")
@@ -776,6 +774,43 @@ async function vendreAction(userId, symbole, quantite) {
   } catch (e) {
     throw e;
   }
+}
+
+async function buyTournamentAction(userId, tournamentId, symbole, quantite) {
+  const cours = await obtenirCours(symbole);
+  const total = cours.prix * quantite;
+
+  const { data: participant, error: participantError } = await supabase
+    .from("tournament_participants")
+    .select("id, current_budget")
+    .eq("tournament_id", tournamentId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (participantError) throw participantError;
+  if (!participant) {
+    throw new Error("Vous ne participez pas à ce tournoi.");
+  }
+
+  const currentBudget = Number(participant.current_budget || 0);
+  if (currentBudget < total) {
+    return { ok: false, message: "Budget de tournoi insuffisant." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("tournament_participants")
+    .update({ current_budget: currentBudget - total })
+    .eq("id", participant.id);
+
+  if (updateError) throw updateError;
+
+  return {
+    ok: true,
+    message: "Achat pour tournoi effectué.",
+    cours,
+    total,
+    currentBudget: currentBudget - total
+  };
 }
 
 // =====================
@@ -1046,6 +1081,30 @@ app.post("/api/tournaments/:id/join", verifyToken, async (req, res, next) => {
     }
 
     res.json(await joinTournament(req.userId, tournamentId));
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post("/api/tournaments/:id/trade", verifyToken, async (req, res, next) => {
+  try {
+    const tournamentId = Number(req.params.id);
+    const symbole = nettoyerSymbole(req.body.symbole, req.body.marche);
+    const quantite = nettoyerQuantite(req.body.quantite);
+
+    if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
+      return res.status(400).json({ message: "ID de tournoi invalide." });
+    }
+    if (!symbole || !quantite) {
+      return res.status(400).json({ message: "Symbole ou quantite invalide." });
+    }
+
+    const result = await buyTournamentAction(req.userId, tournamentId, symbole, quantite);
+    if (!result.ok) {
+      return res.status(400).json({ message: result.message });
+    }
+
+    res.json({ message: result.message, total: result.total, currentBudget: result.currentBudget });
   } catch (e) {
     next(e);
   }

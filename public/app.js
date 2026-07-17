@@ -34,6 +34,7 @@ const tournamentDetailCount = document.querySelector("#tournamentDetailCount");
 const tournamentDetailPrivacy = document.querySelector("#tournamentDetailPrivacy");
 const tournamentStatusBadge = document.querySelector("#tournamentStatusBadge");
 const tournamentParticipantsList = document.querySelector("#tournamentParticipantsList");
+const tournamentTradeButton = document.querySelector("#openTournamentTrade");
 const segments = document.querySelectorAll(".segment");
 
 let currentAction = "acheter";
@@ -462,6 +463,10 @@ tournamentsList.addEventListener("click", tournamentActionHandler);
 refreshButton.addEventListener("click", loadPortfolio);
 
 updateAuthButtons();
+
+tournamentTradeButton?.addEventListener("click", () => {
+  window.location.href = "/tournament-trade.html";
+});
 
 loadPortfolio().catch((error) => {
   balance.textContent = "Erreur";

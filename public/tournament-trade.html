@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Achat tournoi - Simulateur de bourse</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Acheter pour un tournoi</p>
+        <h1>Achat Tournoi</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="backToApp" class="ghost-button" type="button">Retour</button>
+        <button id="logoutButton" class="ghost-button" type="button">Déconnexion</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="trade-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Tournoi sélectionné</p>
+            <h2>Acheter une action pour le tournoi</h2>
+          </div>
+        </div>
+
+        <form id="tournamentTradeForm" class="trade-form">
+          <label>
+            Tournoi
+            <select id="tournamentSelect"></select>
+          </label>
+          <label>
+            Place
+            <select id="tradeMarket">
+              <option value="US">New York</option>
+              <option value="PARIS">Paris</option>
+              <option value="TOKYO">Tokyo</option>
+              <option value="LONDRES">Londres</option>
+              <option value="FRANCFORT">Francfort</option>
+              <option value="TORONTO">Toronto</option>
+            </select>
+          </label>
+          <label>
+            Symbole
+            <input id="tradeSymbol" type="text" value="AAPL" maxlength="12" autocomplete="off" required>
+          </label>
+          <label>
+            Quantite
+            <input id="tradeQuantity" type="number" value="1" min="1" step="1" required>
+          </label>
+          <button id="tradeButton" type="submit">Acheter pour le tournoi</button>
+        </form>
+
+        <p id="tradeMessage" class="message muted">Choisis un tournoi, puis achète une action avec son budget.</p>
+        <div class="tournament-summary">
+          <div>
+            <span class="label">Budget actuel</span>
+            <strong id="currentBudget">-</strong>
+          </div>
+          <div>
+            <span class="label">Dernière mise à jour</span>
+            <strong id="currentStatus">-</strong>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/tournamentTrade.js"></script>
+  </body>
+</html>
